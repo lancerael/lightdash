@@ -36,20 +36,14 @@ const Filter: FC<Props> = ({
     onUpdate,
     onRemove,
 }) => {
-    const dashboard = useDashboardContext((c) => c.dashboard);
-    const dashboardTiles = useDashboardContext((c) => c.dashboardTiles);
-    const allFilterableFields = useDashboardContext(
-        (c) => c.allFilterableFields,
-    );
-    const filterableFieldsByTileUuid = useDashboardContext(
-        (c) => c.filterableFieldsByTileUuid,
-    );
-    const isLoadingDashboardFilters = useDashboardContext(
-        (c) => c.isLoadingDashboardFilters,
-    );
-    const isFetchingDashboardFilters = useDashboardContext(
-        (c) => c.isFetchingDashboardFilters,
-    );
+    const {
+        dashboard,
+        dashboardTiles,
+        allFilterableFields,
+        filterableFieldsByTileUuid,
+        isLoadingDashboardFilters,
+        isFetchingDashboardFilters,
+    } = useDashboardContext((c) => c);
 
     const [isPopoverOpen, { close: closePopover, toggle: togglePopover }] =
         useDisclosure();
@@ -233,15 +227,17 @@ const Filter: FC<Props> = ({
             <Popover.Dropdown ml={5}>
                 {filterableFieldsByTileUuid && dashboardTiles && (
                     <FilterConfiguration
-                        isCreatingNew={isCreatingNew}
-                        isEditMode={isEditMode}
-                        isTemporary={isTemporary}
-                        field={field}
+                        {...{
+                            isCreatingNew,
+                            isEditMode,
+                            isTemporary,
+                            field,
+                            originalFilterRule,
+                            defaultFilterRule,
+                        }}
                         fields={allFilterableFields || []}
                         tiles={dashboardTiles}
-                        originalFilterRule={originalFilterRule}
                         availableTileFilters={filterableFieldsByTileUuid}
-                        defaultFilterRule={defaultFilterRule}
                         onSave={handelSaveChanges}
                         popoverProps={{
                             onOpen: openSubPopover,

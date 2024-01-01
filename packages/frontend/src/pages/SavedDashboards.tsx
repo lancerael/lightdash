@@ -50,6 +50,20 @@ const SavedDashboards = () => {
         setIsCreateDashboardOpen(true);
     };
 
+    const canAddDashboard = userCanManageDashboards && !isDemo;
+
+    const DashboardButton = () => {
+        return (
+            <Button
+                leftIcon={<IconPlus size={18} />}
+                onClick={handleCreateDashboard}
+                disabled={hasNoSpaces}
+            >
+                Create dashboard
+            </Button>
+        );
+    };
+
     return (
         <Page title="Dashboards" withFixedContent withPaddedContent>
             <Stack spacing="xl">
@@ -61,17 +75,9 @@ const SavedDashboards = () => {
                         ]}
                     />
 
-                    {dashboards.length > 0 &&
-                        userCanManageDashboards &&
-                        !isDemo && (
-                            <Button
-                                leftIcon={<IconPlus size={18} />}
-                                onClick={handleCreateDashboard}
-                                disabled={hasNoSpaces}
-                            >
-                                Create dashboard
-                            </Button>
-                        )}
+                    {dashboards.length > 0 && canAddDashboard && (
+                        <DashboardButton />
+                    )}
                 </Group>
 
                 <ResourceView
@@ -85,30 +91,16 @@ const SavedDashboards = () => {
                     emptyStateProps={{
                         icon: <IconLayoutDashboard size={30} />,
                         title: 'No dashboards added yet',
-                        action:
-                            userCanManageDashboards &&
-                            !isDemo &&
-                            hasNoSpaces ? (
-                                <Tooltip label="First you must create a space for this dashboard">
-                                    <div>
-                                        <Button
-                                            leftIcon={<IconPlus size={18} />}
-                                            onClick={handleCreateDashboard}
-                                            disabled={hasNoSpaces}
-                                        >
-                                            Create dashboard
-                                        </Button>
-                                    </div>
-                                </Tooltip>
-                            ) : userCanManageDashboards && !isDemo ? (
-                                <Button
-                                    leftIcon={<IconPlus size={18} />}
-                                    onClick={handleCreateDashboard}
-                                    disabled={hasNoSpaces}
-                                >
-                                    Create dashboard
-                                </Button>
-                            ) : undefined,
+                        action: canAddDashboard ? (
+                            <Tooltip
+                                label="First you must create a space for this dashboard"
+                                disabled={!hasNoSpaces}
+                            >
+                                <div>
+                                    <DashboardButton />
+                                </div>
+                            </Tooltip>
+                        ) : undefined,
                     }}
                 />
             </Stack>
