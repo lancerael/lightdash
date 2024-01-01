@@ -1,18 +1,21 @@
 import {
     applyDefaultTileTargets,
+    Dashboard,
     DashboardFilterRule,
     FilterableField,
 } from '@lightdash/common';
-import { Button, CloseButton, Popover, Text, Tooltip } from '@mantine/core';
+import { CloseButton, Popover, Text } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconFilter } from '@tabler/icons-react';
-import { FC, useCallback, useMemo } from 'react';
+import { FC, useCallback } from 'react';
+import useSanitisedMemo from '../../hooks/useSanitisedMemo';
 import { useDashboardContext } from '../../providers/DashboardProvider';
 import {
     getConditionalRuleLabel,
     getFilterRuleTables,
 } from '../common/Filters/FilterInputs';
 import MantineIcon from '../common/MantineIcon';
+import FilterButton from './FilterButton';
 import FilterConfiguration from './FilterConfiguration';
 
 type Props = {
@@ -36,63 +39,59 @@ const Filter: FC<Props> = ({
     onUpdate,
     onRemove,
 }) => {
-    const dashboard = useDashboardContext((c) => c.dashboard);
-    const dashboardTiles = useDashboardContext((c) => c.dashboardTiles);
-    const allFilterableFields = useDashboardContext(
-        (c) => c.allFilterableFields,
-    );
-    const filterableFieldsByTileUuid = useDashboardContext(
-        (c) => c.filterableFieldsByTileUuid,
-    );
-    const isLoadingDashboardFilters = useDashboardContext(
-        (c) => c.isLoadingDashboardFilters,
-    );
-    const isFetchingDashboardFilters = useDashboardContext(
-        (c) => c.isFetchingDashboardFilters,
-    );
+    const {
+        dashboard,
+        dashboardTiles,
+        allFilterableFields,
+        filterableFieldsByTileUuid,
+        isLoadingDashboardFilters,
+        isFetchingDashboardFilters,
+    } = useDashboardContext((c) => c);
 
     const [isPopoverOpen, { close: closePopover, toggle: togglePopover }] =
         useDisclosure();
+
     const [isSubPopoverOpen, { close: closeSubPopover, open: openSubPopover }] =
         useDisclosure();
 
-    const defaultFilterRule = useMemo(() => {
-        if (!filterableFieldsByTileUuid || !field || !filterRule) return;
-
-        return applyDefaultTileTargets(
-            filterRule,
-            field,
-            filterableFieldsByTileUuid,
-        );
-    }, [filterableFieldsByTileUuid, field, filterRule]);
+    const filterByOriginalRule = useCallback(
+        (target: Dashboard, rule: DashboardFilterRule) => {
+            return target.filters.dimensions.find(
+                (item: DashboardFilterRule) => item.id === rule.id,
+            );
+        },
+        [],
+    );
 
     // Only used by active filters
-    const originalFilterRule = useMemo(() => {
-        if (!dashboard || !filterRule) return;
+    const originalFilterRule = useSanitisedMemo(filterByOriginalRule, [
+        dashboard!,
+        filterRule!,
+    ]);
 
-        return dashboard.filters.dimensions.find(
-            (item) => item.id === filterRule.id,
-        );
-    }, [dashboard, filterRule]);
+    const defaultFilterRule = useSanitisedMemo(applyDefaultTileTargets, [
+        filterRule!,
+        field!,
+        filterableFieldsByTileUuid!,
+    ]);
 
-    const filterRuleLabels = useMemo(() => {
-        if (!filterRule || !field) return;
+    const filterRuleLabels = useSanitisedMemo(getConditionalRuleLabel, [
+        filterRule!,
+        field!,
+    ]);
 
-        return getConditionalRuleLabel(filterRule, field);
-    }, [filterRule, field]);
-
-    const filterRuleTables = useMemo(() => {
-        if (!filterRule || !field || !allFilterableFields) return;
-
-        return getFilterRuleTables(filterRule, field, allFilterableFields);
-    }, [filterRule, field, allFilterableFields]);
+    const filterRuleTables = useSanitisedMemo(getFilterRuleTables, [
+        filterRule!,
+        field!,
+        allFilterableFields!,
+    ]);
 
     const handleClose = useCallback(() => {
         closeSubPopover();
         closePopover();
     }, [closeSubPopover, closePopover]);
 
-    const handelSaveChanges = useCallback(
+    const handleSaveChanges = useCallback(
         (newRule: DashboardFilterRule) => {
             if (isCreatingNew && onSave) {
                 onSave(newRule);
@@ -106,6 +105,70 @@ const Filter: FC<Props> = ({
 
     const isPopoverDisabled =
         !filterableFieldsByTileUuid || !allFilterableFields;
+
+    /**
+     * Props for the new filter button
+     */
+    const newFilter = {
+        tooltipContent: (
+            <>
+                Only filters added in{' '}
+                <Text span fw={600}>
+                    'edit'
+                </Text>{' '}
+                mode will be saved
+            </>
+        ),
+        buttonContent: 'Add filter',
+        buttonProps: {
+            leftIcon: <MantineIcon color="blue" icon={IconFilter} />,
+            disabled: !allFilterableFields,
+            loading: isLoadingDashboardFilters || isFetchingDashboardFilters,
+        },
+    };
+
+    /**
+     * Props for the existing filter button
+     */
+    const existingFilter = {
+        tooltipContent: !!filterRuleTables && (
+            <>
+                <>{filterRuleTables?.length === 1 ? 'Table: ' : 'Tables: '}</>{' '}
+                <Text span fw={600}>
+                    {filterRuleTables?.join(', ')}
+                </Text>
+            </>
+        ),
+        buttonContent: (
+            <>
+                <>{filterRule?.label || filterRuleLabels?.field}</>{' '}
+                {filterRule?.disabled ? (
+                    <Text span color="gray.6">
+                        is any value
+                    </Text>
+                ) : (
+                    <>
+                        <Text span color="gray.7">
+                            {filterRuleLabels?.operator}
+                        </Text>{' '}
+                        <Text fw={700} span>
+                            {filterRuleLabels?.value}
+                        </Text>
+                    </>
+                )}
+            </>
+        ),
+        buttonProps: {
+            rightIcon: (isEditMode || isTemporary) && (
+                <CloseButton size="sm" onClick={onRemove} />
+            ),
+            variant: isTemporary ? 'outline' : 'default',
+        },
+    };
+
+    const { buttonContent, ...filterButtonProps } = isCreatingNew
+        ? newFilter
+        : existingFilter;
 
     return (
         <Popover
@@ -124,125 +187,32 @@ const Filter: FC<Props> = ({
             offset={-1}
         >
             <Popover.Target>
-                {isCreatingNew ? (
-                    <Tooltip
-                        disabled={isPopoverOpen || isEditMode}
-                        position="top-start"
-                        withinPortal
-                        offset={0}
-                        arrowOffset={16}
-                        label={
-                            <Text fz="xs">
-                                Only filters added in{' '}
-                                <Text span fw={600}>
-                                    'edit'
-                                </Text>{' '}
-                                mode will be saved
-                            </Text>
-                        }
-                    >
-                        <Button
-                            size="xs"
-                            mr="xxs"
-                            variant="default"
-                            leftIcon={
-                                <MantineIcon color="blue" icon={IconFilter} />
-                            }
-                            disabled={!allFilterableFields}
-                            loading={
-                                isLoadingDashboardFilters ||
-                                isFetchingDashboardFilters
-                            }
-                            onClick={togglePopover}
-                        >
-                            Add filter
-                        </Button>
-                    </Tooltip>
-                ) : (
-                    <Button
-                        size="xs"
-                        variant={isTemporary ? 'outline' : 'default'}
-                        bg="white"
-                        mr="xxs"
-                        rightIcon={
-                            (isEditMode || isTemporary) && (
-                                <CloseButton size="sm" onClick={onRemove} />
-                            )
-                        }
-                        styles={{
-                            inner: {
-                                color: 'black',
-                            },
-                        }}
-                        onClick={togglePopover}
-                    >
-                        <Text fz="xs">
-                            <Tooltip
-                                withinPortal
-                                position="top-start"
-                                disabled={isPopoverOpen}
-                                offset={8}
-                                label={
-                                    <Text fz="xs">
-                                        {filterRuleTables?.length === 0 ? (
-                                            <>
-                                                Table:
-                                                <Text span fw={600}>
-                                                    {filterRuleTables[0]}
-                                                </Text>
-                                            </>
-                                        ) : (
-                                            <>
-                                                Tables:{' '}
-                                                <Text span fw={600}>
-                                                    {filterRuleTables?.join(
-                                                        ', ',
-                                                    )}
-                                                </Text>
-                                            </>
-                                        )}
-                                    </Text>
-                                }
-                            >
-                                <Text fw={600} span>
-                                    {filterRule?.label ||
-                                        filterRuleLabels?.field}{' '}
-                                </Text>
-                            </Tooltip>
-                            <Text fw={400} span>
-                                {filterRule?.disabled ? (
-                                    <Text span color="gray.6">
-                                        is any value
-                                    </Text>
-                                ) : (
-                                    <>
-                                        <Text span color="gray.7">
-                                            {filterRuleLabels?.operator}{' '}
-                                        </Text>
-                                        <Text fw={700} span>
-                                            {filterRuleLabels?.value}
-                                        </Text>
-                                    </>
-                                )}
-                            </Text>
-                        </Text>
-                    </Button>
-                )}
+                <FilterButton
+                    isTooltipDisabled={
+                        isPopoverOpen || (!isCreatingNew && isEditMode)
+                    }
+                    onClick={togglePopover}
+                    {...filterButtonProps}
+                >
+                    {buttonContent}
+                </FilterButton>
             </Popover.Target>
 
             <Popover.Dropdown ml={5}>
                 {filterableFieldsByTileUuid && dashboardTiles && (
                     <FilterConfiguration
-                        isCreatingNew={isCreatingNew}
-                        isEditMode={isEditMode}
-                        isTemporary={isTemporary}
-                        field={field}
+                        {...{
+                            isCreatingNew,
+                            isEditMode,
+                            isTemporary,
+                            field,
+                            originalFilterRule,
+                            defaultFilterRule,
+                        }}
                         fields={allFilterableFields || []}
                         tiles={dashboardTiles}
-                        originalFilterRule={originalFilterRule}
                         availableTileFilters={filterableFieldsByTileUuid}
-                        defaultFilterRule={defaultFilterRule}
-                        onSave={handelSaveChanges}
+                        onSave={handleSaveChanges}
                         popoverProps={{
                             onOpen: openSubPopover,
                             onClose: closeSubPopover,

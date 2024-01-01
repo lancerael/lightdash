@@ -79,6 +79,7 @@ export default defineConfig({
                     ],
                 },
             },
+            external: ['./sb-preview/runtime.js'],
         },
     },
     server: {
@@ -95,4 +96,5 @@ export default defineConfig({
         },
     },
     clearScreen: false,
+    assetsInclude: ['/sb-preview/runtime.js'],
 });

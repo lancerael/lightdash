@@ -23,6 +23,7 @@ module.exports = {
         'plugin:react/recommended',
         'airbnb-typescript',
         'prettier',
+        'plugin:storybook/recommended',
     ],
     plugins: [
         '@typescript-eslint',
