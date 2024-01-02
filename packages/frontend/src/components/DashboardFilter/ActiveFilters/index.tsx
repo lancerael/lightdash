@@ -1,8 +1,8 @@
 import { DashboardFilters } from '@lightdash/common';
-import { Group, Skeleton } from '@mantine/core';
 import { FC } from 'react';
 import { useDashboardContext } from '../../../providers/DashboardProvider';
 import Filter from '../Filter';
+import SkeletonGroup from './Skeletons';
 
 interface ActiveFiltersProps {
     isEditMode: boolean;
@@ -20,13 +20,7 @@ const ActiveFilters: FC<ActiveFiltersProps> = ({ isEditMode }) => {
     } = useDashboardContext((c) => c);
 
     if (isLoadingDashboardFilters || isFetchingDashboardFilters) {
-        return (
-            <Group spacing="xs" ml="xs">
-                {Array.from({ length: 5 }, (_, i) => (
-                    <Skeleton h={30} w={100} radius={4} key={i} />
-                ))}
-            </Group>
-        );
+        return <SkeletonGroup length={5} />;
     }
 
     if (!fieldsWithSuggestions) return null;
