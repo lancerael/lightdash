@@ -9,11 +9,11 @@ import { FilterButtonProps } from './FilterButton.types';
  * @example
  * // Example usage:
  * <FilterButton
- *    isTooltipDisabled={false}
+ *    isTooltipDisabled={true}
  *    tooltipContent={<div>Tooltip Content</div>}
  *    onClick={() => console.log('Button clicked')}
- *    tooltipProps={{ arrow: true, duration: 200 }}
- *    buttonProps={{ disabled: false }}
+ *    tooltipProps={{ duration: 200 }}
+ *    buttonProps={{ disabled: true }}
  * >
  *    Click me
  * </FilterButton>
